@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Orchestrator } from "@/orchestrator/Orchestrator";
+import { MemoryManager } from "@/memory/MemoryManager";
 import { ProfileAnalyzerAgent } from "@/agents/ProfileAnalyzerAgent";
 import { SkillGapAgent } from "@/agents/SkillGapAgent";
 import { InterviewAgent } from "@/agents/InterviewAgent";
 import { CareerPlannerAgent } from "@/agents/CareerPlannerAgent";
+import { ReadinessEngine } from "@/scoring/ReadinessEngine";
 
-const orchestrator = new Orchestrator();
-// Instantiate agents (singleton-ish or per request?)
-// Agents are stateless classes effectively if MemoryManager is singleton.
+// Instantiate agents
 const agents: Record<string, any> = {
     "ProfileAnalyzerAgent": new ProfileAnalyzerAgent(),
     "SkillGapAgent": new SkillGapAgent(),
@@ -15,38 +14,67 @@ const agents: Record<string, any> = {
     "CareerPlannerAgent": new CareerPlannerAgent(),
 };
 
+// Action to Agent mapping
+const ACTION_TO_AGENT: Record<string, string> = {
+    "ANALYZE_PROFILE": "ProfileAnalyzerAgent",
+    "ANALYZE_GAPS": "SkillGapAgent",
+    "START_INTERVIEW": "InterviewAgent",
+    "ANSWER_QUESTION": "InterviewAgent",
+    "GENERATE_PLAN": "CareerPlannerAgent",
+};
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
+        const { action, ...data } = body;
 
-        // Frontend sends "action" or "current_input"
-        // Ask Orchestrator what to do
-        const decision = orchestrator.decideNextStep();
+        // Determine which agent to use based on explicit action
+        const agentName = ACTION_TO_AGENT[action];
 
-        // If the user is explicitly forcing an action (e.g. sending resume), we might override
-        // But for "Agentic" flow, we trust the orchestrator or state.
-        // However, if we need input (e.g. Resume), the Orchestrator expects us to call the agent.
+        if (!agentName) {
+            return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+        }
 
-        const agentName = decision.agent;
         const agent = agents[agentName];
 
         if (!agent) {
             return NextResponse.json({ error: "Agent not found" }, { status: 500 });
         }
 
-        // Agent Process
+        // Process with the agent
         const output = await agent.process({
-            type: decision.action,
-            data: body // Pass frontend input (e.g. text answer, resume content)
+            type: action,
+            data: data
         });
+
+        // If profile was analyzed, also store it in memory and calculate readiness
+        if (action === "ANALYZE_PROFILE" && output.success) {
+            const memory = MemoryManager.getInstance();
+            memory.updateProfile({
+                ...data,
+                ...output.data
+            });
+            // Auto-calculate and return readiness
+            const readinessScore = ReadinessEngine.calculateReadiness();
+            memory.updateReadinessScore(readinessScore);
+            output.data.readinessScore = readinessScore;
+            output.data.studentProfile = memory.getState().studentProfile;
+        }
+
+        // For skill gap analysis, attach the data to output
+        if (action === "ANALYZE_GAPS" && output.success) {
+            const memory = MemoryManager.getInstance();
+            output.data.skillGapData = memory.getState().skillGapData;
+        }
 
         return NextResponse.json({
-            decision,
+            decision: { agent: agentName, action },
             output,
-            currentState: agentName // Tell UI which view to show
+            currentState: agentName
         });
 
-    } catch (e) {
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } catch (e: any) {
+        console.error("Orchestrate Error:", e);
+        return NextResponse.json({ error: e.message || "Internal Server Error" }, { status: 500 });
     }
 }

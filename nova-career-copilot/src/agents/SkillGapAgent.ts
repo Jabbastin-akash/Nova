@@ -1,15 +1,15 @@
 import { Agent, AgentInput, AgentOutput } from "./Agent";
 import { MemoryManager } from "@/memory/MemoryManager";
-import { NovaClient } from "@/llm/NovaClient";
+import { GroqClient } from "@/llm/GroqClient";
 import { companyProfiles } from "@/config/companyProfiles";
 
 export class SkillGapAgent implements Agent {
     name = "SkillGapAgent";
-    private llm: NovaClient;
+    private llm: GroqClient;
     private memory: MemoryManager;
 
     constructor() {
-        this.llm = new NovaClient();
+        this.llm = new GroqClient();
         this.memory = MemoryManager.getInstance();
     }
 
@@ -28,7 +28,8 @@ export class SkillGapAgent implements Agent {
     Expectations: ${company.focusAreas.join(", ")}
     Weights: Tech ${company.technicalWeight}, Behav ${company.behavioralWeight}
     
-    Output structured JSON with readiness_percentage, priority_gaps, etc.`;
+    Output structured JSON ONLY. Do not include any conversational text, markdown formatting, or code blocks.
+    Format: { readiness_percentage: number, priority_gaps: string[], ... }`;
 
         const userPrompt = `
     Student Skills: ${JSON.stringify(profile)}

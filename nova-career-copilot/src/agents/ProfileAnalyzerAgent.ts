@@ -1,14 +1,14 @@
 import { Agent, AgentInput, AgentOutput } from "./Agent";
 import { MemoryManager } from "@/memory/MemoryManager";
-import { NovaClient } from "@/llm/NovaClient";
+import { GroqClient } from "@/llm/GroqClient";
 
 export class ProfileAnalyzerAgent implements Agent {
     name = "ProfileAnalyzerAgent";
-    private llm: NovaClient;
+    private llm: GroqClient;
     private memory: MemoryManager;
 
     constructor() {
-        this.llm = new NovaClient();
+        this.llm = new GroqClient();
         this.memory = MemoryManager.getInstance();
     }
 
@@ -18,7 +18,7 @@ export class ProfileAnalyzerAgent implements Agent {
         const systemPrompt = `You are the Profile Analyzer Agent.
     Input: Resume content, GitHub project descriptions, Declared tech stack, Academic year, Target company.
     Tasks: Extract structured skills, Score resume/projects/maturity (1-10), Detect missing fundamentals/weaknesses.
-    Output structured JSON only.`;
+    Output structured JSON ONLY. Do not include any conversational text, markdown formatting, or code blocks.`;
 
         const userPrompt = `
     Resume: ${resumeText}
