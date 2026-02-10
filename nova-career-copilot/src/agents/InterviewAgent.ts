@@ -1,6 +1,6 @@
-import { Agent, AgentInput, AgentOutput } from "./Agent";
-import { MemoryManager } from "@/memory/MemoryManager";
-import { GroqClient } from "@/llm/GroqClient";
+import type { Agent, AgentInput, AgentOutput } from "./Agent";
+import { MemoryManager } from "../memory/MemoryManager";
+import { GroqClient } from "../llm/GroqClient";
 
 export class InterviewAgent implements Agent {
     name = "InterviewAgent";

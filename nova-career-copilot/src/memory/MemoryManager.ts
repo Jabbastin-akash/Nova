@@ -1,4 +1,5 @@
-import { CompanyProfile, companyProfiles } from "@/config/companyProfiles";
+import type { CompanyProfile } from "../config/companyProfiles";
+import { companyProfiles } from "../config/companyProfiles";
 
 export interface StudentProfile {
     resumeText: string;
@@ -6,6 +7,7 @@ export interface StudentProfile {
     academicYear: string;
     targetCompany: string;
     resumeScore?: number;
+    projectDepthScore?: number;
     technicalMaturityScore?: number;
     missingCoreAreas?: string[];
     inferredStrengths?: string[];
@@ -69,8 +71,36 @@ export class MemoryManager {
         if (profile.targetCompany && companyProfiles[profile.targetCompany.toLowerCase()]) {
             this.state.targetCompany = companyProfiles[profile.targetCompany.toLowerCase()];
         }
-        this.state.weakAreas = profile.missingCoreAreas || [];
-        this.state.strengths = profile.inferredStrengths || [];
+
+        // Normalize missingCoreAreas (accept array or object) into a flat array of strings
+        const missing = (profile as any).missingCoreAreas;
+        if (Array.isArray(missing)) {
+            this.state.weakAreas = missing;
+        } else if (missing && typeof missing === 'object') {
+            const arr: string[] = [];
+            Object.values(missing).forEach((v: any) => {
+                if (Array.isArray(v)) arr.push(...v);
+                else if (typeof v === 'string') arr.push(v);
+            });
+            this.state.weakAreas = arr;
+        } else {
+            this.state.weakAreas = [];
+        }
+
+        // Normalize inferred strengths
+        const strengths = (profile as any).inferredStrengths;
+        if (Array.isArray(strengths)) {
+            this.state.strengths = strengths;
+        } else if (strengths && typeof strengths === 'object') {
+            const arr: string[] = [];
+            Object.values(strengths).forEach((v: any) => {
+                if (Array.isArray(v)) arr.push(...v);
+                else if (typeof v === 'string') arr.push(v);
+            });
+            this.state.strengths = arr;
+        } else {
+            this.state.strengths = [];
+        }
     }
 
     public updateSkillGap(data: SkillGapData): void {

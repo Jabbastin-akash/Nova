@@ -44,7 +44,6 @@
   .dark {
     --background: 0 0% 1%;
     --foreground: 0 0% 100%;
-    /* Re-declare if needed for specificity, otherwise root covers it */
   }
 }
 
@@ -58,9 +57,81 @@
     /* Deep Nebula Background */
     background: radial-gradient(circle at 10% 20%, rgba(40, 155, 255, 0.15) 0%, transparent 40%),
       radial-gradient(circle at 90% 80%, rgba(255, 103, 2, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(4, 222, 178, 0.05) 0%, transparent 60%),
       #020202;
     background-attachment: fixed;
     font-family: 'Helvetica Neue', 'Inter', sans-serif;
+  }
+}
+
+/* Keyframe Animations */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(40, 155, 255, 0.2), inset 0 0 15px rgba(40, 155, 255, 0.05);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(40, 155, 255, 0.4), inset 0 0 25px rgba(40, 155, 255, 0.1);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes gradient-rotate {
+  0% {
+    --angle: 0deg;
+  }
+
+  100% {
+    --angle: 360deg;
+  }
+}
+
+@keyframes spin-slow {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blob-move {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -20px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
   }
 }
 
@@ -68,11 +139,21 @@
 
   /* Ultra-Premium Glass Cards */
   .glass-card {
-    @apply bg-[#121212]/60 backdrop-blur-2xl border border-white/5 shadow-2xl;
+    @apply bg-[#121212]/60 backdrop-blur-2xl border border-white/5 shadow-2xl rounded-2xl;
     box-shadow:
       0 4px 24px -1px rgba(0, 0, 0, 0.5),
       inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
       inset 0 0 20px rgba(255, 255, 255, 0.02);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-500;
+  }
+
+  .glass-card-hover:hover {
+    animation: pulse-glow 2s ease-in-out infinite;
+    border-color: rgba(40, 155, 255, 0.2);
+    transform: translateY(-2px);
   }
 
   /* Liquid Button */
@@ -90,10 +171,31 @@
   .btn-liquid:hover {
     background: rgba(255, 255, 255, 0.08);
     box-shadow:
-      0 0 20px rgba(40, 155, 255, 0.4),
+      0 0 30px rgba(40, 155, 255, 0.4),
+      0 0 60px rgba(40, 155, 255, 0.15),
       inset 0 0 20px rgba(40, 155, 255, 0.2);
     border-color: rgba(40, 155, 255, 0.5);
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .btn-liquid:active {
+    transform: translateY(0) scale(0.99);
+    box-shadow:
+      0 0 15px rgba(40, 155, 255, 0.3),
+      inset 0 0 10px rgba(40, 155, 255, 0.15);
+  }
+
+  /* Liquid Orange Variant */
+  .btn-liquid-orange {
+    @apply btn-liquid;
+  }
+
+  .btn-liquid-orange:hover {
+    box-shadow:
+      0 0 30px rgba(255, 103, 2, 0.4),
+      0 0 60px rgba(255, 103, 2, 0.15),
+      inset 0 0 20px rgba(255, 103, 2, 0.2);
+    border-color: rgba(255, 103, 2, 0.5);
   }
 
   /* Glass Inputs */
@@ -115,7 +217,68 @@
     text-shadow: 0 0 15px rgba(255, 103, 2, 0.6);
   }
 
+  .text-glow-teal {
+    text-shadow: 0 0 15px rgba(4, 222, 178, 0.6);
+  }
+
   .sidebar-glow {
     box-shadow: 0 0 40px -10px rgba(40, 155, 255, 0.1);
+  }
+
+  /* Float animation */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Shimmer effect for loading states */
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* Animated blob background */
+  .lazy-blob {
+    animation: blob-move 12s ease-in-out infinite;
+  }
+
+  /* Gradient border effect */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(40, 155, 255, 0.3), transparent, rgba(255, 103, 2, 0.3));
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+  }
+
+  /* Slow spin */
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+
+  /* Neon underline for headings */
+  .neon-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .neon-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--primary)), transparent);
+    border-radius: 999px;
   }
 }

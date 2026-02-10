@@ -1,4 +1,4 @@
-import { MemoryManager } from "@/memory/MemoryManager";
+import { MemoryManager } from "../memory/MemoryManager";
 
 export class ReadinessEngine {
     public static calculateReadiness(): number {

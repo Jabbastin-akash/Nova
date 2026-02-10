@@ -1,7 +1,7 @@
-import { Agent, AgentInput, AgentOutput } from "./Agent";
-import { MemoryManager } from "@/memory/MemoryManager";
-import { GroqClient } from "@/llm/GroqClient";
-import { companyProfiles } from "@/config/companyProfiles";
+import type { Agent, AgentInput, AgentOutput } from "./Agent";
+import { MemoryManager } from "../memory/MemoryManager";
+import { GroqClient } from "../llm/GroqClient";
+import { companyProfiles } from "../config/companyProfiles";
 
 export class SkillGapAgent implements Agent {
     name = "SkillGapAgent";

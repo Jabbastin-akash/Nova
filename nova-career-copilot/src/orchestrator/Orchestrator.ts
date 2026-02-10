@@ -1,4 +1,4 @@
-import { MemoryManager } from "@/memory/MemoryManager";
+import { MemoryManager } from "../memory/MemoryManager";
 import { ReadinessEngine } from "@/scoring/ReadinessEngine";
 
 export class Orchestrator {
