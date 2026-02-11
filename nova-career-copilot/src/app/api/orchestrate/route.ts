@@ -42,10 +42,13 @@ export async function POST(req: NextRequest) {
         }
 
         // Process with the agent
-        const output = await agent.process({
+        // For interview actions, pass the full data including agentic state
+        const agentInput: any = {
             type: action,
-            data: data
-        });
+            data: data,
+        };
+
+        const output = await agent.process(agentInput);
 
         // If profile was analyzed, also store it in memory and calculate readiness
         if (action === "ANALYZE_PROFILE" && output.success) {

@@ -8,7 +8,7 @@ export class GroqClient {
         this.client = new Groq({
             apiKey: process.env.GROQ_API_KEY || "",
         });
-        this.modelId = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+        this.modelId = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
     }
 
     async invoke(prompt: string, systemPrompt: string): Promise<string> {

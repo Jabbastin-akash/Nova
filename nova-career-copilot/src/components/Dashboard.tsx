@@ -16,11 +16,27 @@ export function Dashboard({ state }: DashboardProps) {
     const profile = state.studentProfile || {};
     const readiness = state.readinessScore || profile.resume_score || profile.resumeScore || 0;
 
-    // Gaps: handle 'missing_core_areas' from Agent or 'priorityGaps' from Orchestrator logic
-    const gaps = state.skillGapData?.priorityGaps || profile.missing_core_areas || profile.missingCoreAreas || [];
+    // Gaps: robust extraction from any format
+    const rawGaps = state.skillGapData?.priorityGaps || profile.missing_core_areas || profile.missingCoreAreas || profile.weaknesses || profile.priority_gaps || [];
+    const gaps: string[] = Array.isArray(rawGaps)
+        ? rawGaps
+        : (rawGaps && typeof rawGaps === 'object')
+            ? Object.values(rawGaps).flat().filter((v: any) => typeof v === 'string') as string[]
+            : typeof rawGaps === 'string' ? [rawGaps] : [];
 
-    // Strengths: handle 'inferred_strengths' from Agent
-    const strengths = profile.inferred_strengths || profile.inferredStrengths || [];
+    // Strengths: robust extraction from any format
+    const rawStrengths = profile.inferred_strengths || profile.inferredStrengths || profile.strengths || profile.skills || [];
+    let strengths: string[] = [];
+    if (Array.isArray(rawStrengths)) {
+        strengths = rawStrengths.filter((s: any) => typeof s === 'string');
+    } else if (rawStrengths && typeof rawStrengths === 'object') {
+        Object.values(rawStrengths).forEach((v: any) => {
+            if (Array.isArray(v)) strengths.push(...v.filter((s: any) => typeof s === 'string'));
+            else if (typeof v === 'string') strengths.push(v);
+        });
+    } else if (typeof rawStrengths === 'string') {
+        strengths = [rawStrengths];
+    }
 
     // Radar chart data
     const radarData = [

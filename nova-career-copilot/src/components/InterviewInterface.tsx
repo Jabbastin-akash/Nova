@@ -18,6 +18,8 @@ interface InterviewInterfaceProps {
     onTopicSelect?: (topics: string[]) => void;
     programmingQuestions?: any[];
     onEndSession?: () => void;
+    interviewPhase?: string;
+    questionsAsked?: number;
 }
 
 const TOPIC_OPTIONS = [
@@ -42,6 +44,8 @@ export function InterviewInterface({
     onTopicSelect,
     programmingQuestions = [],
     onEndSession,
+    interviewPhase = "warmup",
+    questionsAsked = 0,
 }: InterviewInterfaceProps) {
     const [answer, setAnswer] = useState("");
     const [difficulty, setDifficulty] = useState("Medium");
@@ -203,17 +207,61 @@ export function InterviewInterface({
                                 </div>
                             </div>
 
-                            {item.evaluation && (
-                                <div className="mx-10 p-2 rounded-lg bg-yellow-500/10 border-l-2 border-yellow-500 text-xs text-yellow-200/80">
-                                    <div className="flex justify-between mb-1">
-                                        <span className="font-bold">Feedback</span>
-                                        <Badge variant="outline" className="border-yellow-500/30 text-yellow-500 text-[10px]">
-                                            Score: {item.evaluation.technicalDepth}/10
-                                        </Badge>
+                            {item.evaluation && (() => {
+                                const techDepth = item.evaluation.technical_depth ?? item.evaluation.technicalDepth ?? 0;
+                                const clarity = item.evaluation.clarity ?? 0;
+                                const structure = item.evaluation.structure ?? 0;
+                                const avgScore = Math.round(((techDepth + clarity + structure) / 3) * 10) / 10;
+
+                                const containerClass = avgScore >= 7
+                                    ? 'bg-green-500/5 border-green-500/20'
+                                    : avgScore >= 4
+                                        ? 'bg-yellow-500/5 border-yellow-500/20'
+                                        : 'bg-red-500/5 border-red-500/20';
+
+                                const badgeClass = avgScore >= 7
+                                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                                    : avgScore >= 4
+                                        ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                                        : 'bg-red-500/20 text-red-400 border-red-500/30';
+
+                                return (
+                                    <div className={`mx-10 p-3 rounded-xl border text-xs space-y-2.5 ${containerClass}`}>
+                                        {/* Header with overall score */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-white/80 uppercase tracking-wider text-[10px]">Score Card</span>
+                                            <Badge className={`text-xs px-3 py-0.5 ${badgeClass}`}>
+                                                {avgScore}/10
+                                            </Badge>
+                                        </div>
+
+                                        {/* Individual scores */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                { label: 'Technical', score: techDepth, color: 'text-blue-400' },
+                                                { label: 'Clarity', score: clarity, color: 'text-purple-400' },
+                                                { label: 'Structure', score: structure, color: 'text-teal-400' },
+                                            ].map((s) => (
+                                                <div key={s.label} className="text-center p-2 rounded-lg bg-white/5 border border-white/5">
+                                                    <p className={`text-[10px] font-semibold ${s.color} uppercase tracking-wider mb-1`}>{s.label}</p>
+                                                    <p className="text-lg font-bold text-white">{s.score}<span className="text-white/30 text-xs">/10</span></p>
+                                                    <div className="w-full h-1 bg-white/10 rounded-full mt-1">
+                                                        <div
+                                                            className={`h-1 rounded-full ${s.score >= 7 ? 'bg-green-500' : s.score >= 4 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                            style={{ width: `${s.score * 10}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Feedback text */}
+                                        {item.feedback && (
+                                            <p className="text-white/60 leading-relaxed pt-1 border-t border-white/5">{item.feedback}</p>
+                                        )}
                                     </div>
-                                    <p>{item.feedback}</p>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     ))}
 
@@ -317,7 +365,18 @@ export function InterviewInterface({
 
                 <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Questions Answered</p>
-                    <p className="text-3xl font-bold">{history.length}</p>
+                    <p className="text-3xl font-bold">{questionsAsked || history.length}</p>
+                </div>
+
+                <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Phase</p>
+                    <Badge className={
+                        interviewPhase === 'deep_dive' ? "bg-red-500/20 text-red-400 border-red-500/50"
+                            : interviewPhase === 'probing' ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
+                                : "bg-green-500/20 text-green-400 border-green-500/50"
+                    }>
+                        {interviewPhase === 'deep_dive' ? '🔥 Deep Dive' : interviewPhase === 'probing' ? '🔍 Probing' : '💡 Warm-up'}
+                    </Badge>
                 </div>
 
                 <div className="space-y-1">

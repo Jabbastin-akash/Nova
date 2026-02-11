@@ -19,14 +19,15 @@ async function extractTextFromPDF(file: File): Promise<string> {
   // Import inside function so this code only runs in the browser (avoids DOMMatrix server errors)
   let pdfjsLib: any;
   try {
-    pdfjsLib = await import('pdfjs-dist');
+    // Use legacy build for better compatibility with Next.js/Turbopack
+    pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
   } catch (e) {
     console.error('Failed to load pdfjs-dist:', e);
     throw e;
   }
 
-  // Set worker source to CDN matching installed version
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  // Set worker source to CDN matching installed version (legacy build)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -51,6 +52,8 @@ export default function Home() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [interviewDifficulty, setInterviewDifficulty] = useState("Medium");
   const [programmingQuestions, setProgrammingQuestions] = useState<any[]>([]);
+  const [interviewPhase, setInterviewPhase] = useState<string>("warmup");
+  const [questionsAsked, setQuestionsAsked] = useState(0);
 
   // App State
   const [profile, setProfile] = useState({
@@ -124,6 +127,35 @@ export default function Home() {
           };
         } else {
           const data = res.output.data;
+          console.log("Profile Analyzer raw response:", JSON.stringify(data, null, 2));
+
+          // Flatten skills if it's an object (e.g. {languages: [...], frameworks: [...]})
+          let inferredStrengths: string[] = [];
+          if (Array.isArray(data.inferred_strengths)) {
+            inferredStrengths = data.inferred_strengths;
+          } else if (Array.isArray(data.recommendations)) {
+            inferredStrengths = data.recommendations;
+          } else if (data.skills && typeof data.skills === 'object' && !Array.isArray(data.skills)) {
+            Object.values(data.skills).forEach((v: any) => {
+              if (Array.isArray(v)) inferredStrengths.push(...v);
+              else if (typeof v === 'string') inferredStrengths.push(v);
+            });
+          } else if (Array.isArray(data.skills)) {
+            inferredStrengths = data.skills;
+          }
+
+          // Flatten missing areas
+          let missingCoreAreas: string[] = [];
+          const rawMissing = data.missing_core_areas || data.weaknesses || data.priority_gaps || data.missing_fundamentals || [];
+          if (Array.isArray(rawMissing)) {
+            missingCoreAreas = rawMissing;
+          } else if (rawMissing && typeof rawMissing === 'object') {
+            Object.values(rawMissing).forEach((v: any) => {
+              if (Array.isArray(v)) missingCoreAreas.push(...v);
+              else if (typeof v === 'string') missingCoreAreas.push(v);
+            });
+          }
+
           studentProfile = {
             name: profile.name,
             resumeText: profile.resumeText,
@@ -134,8 +166,10 @@ export default function Home() {
             resume_score: data.resume_score ?? data.score?.resume ?? 0,
             projectDepthScore: data.project_depth_score ?? data.score?.projects ?? 0,
             technicalMaturityScore: data.technical_maturity_score ?? data.score?.maturity ?? 0,
-            missingCoreAreas: Array.isArray(data.missing_core_areas) ? data.missing_core_areas : (data.missing_core_areas ? Object.values(data.missing_core_areas).flat() : []),
-            inferredStrengths: data.inferred_strengths || data.recommendations || []
+            missingCoreAreas,
+            missing_core_areas: missingCoreAreas,
+            inferredStrengths,
+            inferred_strengths: inferredStrengths,
           };
         }
 
@@ -182,6 +216,8 @@ export default function Home() {
       selectedTopics: []
     }));
     setProgrammingQuestions([]);
+    setInterviewPhase("warmup");
+    setQuestionsAsked(0);
     setView("INTERVIEW");
   };
 
@@ -200,7 +236,9 @@ export default function Home() {
         lastAnswer: answer,
         lastQuestionId: "123",
         difficulty: interviewDifficulty,
-        topics: selectedTopics
+        topics: selectedTopics,
+        phase: interviewPhase,
+        questionsAsked: questionsAsked,
       });
 
       if (res.output?.data) {
@@ -225,6 +263,10 @@ export default function Home() {
             example: `// Your solution here\nfunction solve(input) {\n  // implement\n}`
           }]);
         }
+
+        // Update agentic state from response
+        if (res.output.data.phase) setInterviewPhase(res.output.data.phase);
+        if (res.output.data.questionsAsked) setQuestionsAsked(res.output.data.questionsAsked);
 
         setAppState((prev: any) => ({
           ...prev,
@@ -576,6 +618,8 @@ Projects: Built a real-time chat app..."
                     onTopicSelect={handleTopicSelect}
                     programmingQuestions={programmingQuestions}
                     onEndSession={() => setView("DASHBOARD")}
+                    interviewPhase={interviewPhase}
+                    questionsAsked={questionsAsked}
                   />
                 )}
 
