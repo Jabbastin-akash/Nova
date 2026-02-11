@@ -69,12 +69,13 @@ export class InterviewAgent implements Agent {
         try {
             let evaluation: any = null;
             let feedbackSummary: string | null = null;
+            let evalResult: any = null;
 
             // ─── STEP 1: EVALUATE (Gemini — heavy reasoning) ───
             if (state.lastUserAnswer) {
-                const evalResult = await this.evaluateAnswer(state, company, skills);
+                evalResult = await this.evaluateAnswer(state, company, skills);
                 evaluation = evalResult.evaluation;
-                feedbackSummary = evalResult.feedbackSummary;
+                feedbackSummary = evalResult.feedback_summary || evalResult.feedbackSummary;
 
                 // Store interview result in memory
                 if (evaluation) {
@@ -112,6 +113,15 @@ export class InterviewAgent implements Agent {
             const questionResult = await this.generateQuestion(state, company, skills);
 
             // ─── STEP 4: RETURN STRICT JSON ───
+            // Extract point system fields from top-level evalResult (not nested evaluation object)
+            const evalResult2 = evalResult ? {
+                points_awarded: evalResult.points_awarded ?? Math.round(((evaluation?.technical_depth || 0) + (evaluation?.clarity || 0) + (evaluation?.structure || 0)) / 3),
+                max_points: evalResult.max_points ?? 10,
+                is_correct: evalResult.is_correct ?? ((evaluation?.technical_depth || 0) >= 5),
+                what_went_wrong: evalResult.what_went_wrong ?? null,
+                correct_answer: evalResult.correct_answer ?? null,
+            } : null;
+
             return {
                 success: true,
                 data: {
@@ -122,6 +132,7 @@ export class InterviewAgent implements Agent {
                     questionsAsked: state.questionsAsked,
                     evaluation,
                     feedback_summary: feedbackSummary,
+                    ...(evalResult2 || {}),
                 },
             };
         } catch (error: any) {
@@ -161,6 +172,9 @@ Questions asked so far: ${state.questionsAsked}
 Candidate skills: ${skills.join(", ")}
 
 EVALUATE the answer. Be precise and objective.
+Award points out of 10 based on correctness, depth, and quality.
+Determine whether the answer is fundamentally correct or incorrect.
+If the answer is wrong or has significant errors, clearly explain what went wrong and provide the correct/ideal answer.
 
 CRITICAL: Output ONLY valid JSON. No markdown, no code blocks, no extra text.
 JSON format:
@@ -170,6 +184,11 @@ JSON format:
     "clarity": <1-10>,
     "structure": <1-10>
   },
+  "points_awarded": <0-10>,
+  "max_points": 10,
+  "is_correct": <true/false>,
+  "what_went_wrong": "<specific explanation of errors in the answer, or null if correct>",
+  "correct_answer": "<the ideal/correct answer if the candidate was wrong, or null if correct>",
   "weakness_detected": <true/false>,
   "weakness_area": "<specific area of weakness or null>",
   "strength_detected": <true/false>,
@@ -182,23 +201,31 @@ JSON format:
 
 Evaluate this answer.`;
 
-        console.log("--- Evaluating answer (Gemini → Groq fallback) ---");
+        console.log("--- Evaluating answer (Gemini primary → Groq fallback) ---");
 
         let response: string;
         try {
+            // Use Gemini for heavy evaluation tasks
             response = await this.gemini.invoke(prompt, systemPrompt);
         } catch {
-            // Gemini failed (e.g. 429 quota) — route through Groq instead
+            // Gemini failed — route through Groq instead
             console.log("--- Gemini unavailable, using Groq for evaluation ---");
             response = await this.groq.invoke(prompt, systemPrompt);
         }
 
         try {
-            return JSON.parse(this.cleanJson(response));
+            const parsed = JSON.parse(this.cleanJson(response));
+            console.log("--- Eval result --- points:", parsed.points_awarded, "correct:", parsed.is_correct, "wrong:", parsed.what_went_wrong?.substring(0, 80));
+            return parsed;
         } catch {
             console.error("Failed to parse evaluation response, using defaults");
             return {
                 evaluation: { technical_depth: 5, clarity: 5, structure: 5 },
+                points_awarded: 5,
+                max_points: 10,
+                is_correct: true,
+                what_went_wrong: null,
+                correct_answer: null,
                 weakness_detected: false,
                 strength_detected: false,
                 suggested_phase: state.phase,
@@ -224,7 +251,7 @@ Evaluate this answer.`;
         };
 
         const systemPrompt = `You are a question generator for a technical interview agent at ${company}.
-Topic areas: ${state.topic}
+You MUST ask questions ONLY about these specific topics: ${state.topic}
 Difficulty: ${state.difficulty}
 Phase: ${state.phase}
 Questions asked so far: ${state.questionsAsked}
@@ -235,10 +262,10 @@ ${phaseInstructions[state.phase] || phaseInstructions.probing}
 
 Rules:
 - Ask EXACTLY ONE question
+- The question MUST be strictly about: ${state.topic}. Do NOT ask about unrelated topics.
 - No hints, feedback, or explanations
 - No multiple parts
 - No meta commentary
-- Stay strictly on-topic
 - Do NOT repeat previous questions
 
 CRITICAL: Output ONLY valid JSON. No markdown, no code blocks.

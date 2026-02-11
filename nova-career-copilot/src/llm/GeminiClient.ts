@@ -90,10 +90,15 @@ export class GeminiClient {
           clarity: 7,
           structure: 6,
         },
+        points_awarded: 7,
+        max_points: 10,
+        is_correct: true,
+        what_went_wrong: null,
+        correct_answer: null,
         weakness_detected: false,
         strength_detected: true,
         suggested_phase: "probing",
-        feedback_summary: "Good foundational understanding. Could go deeper on implementation details.",
+        feedback_summary: "Good foundational understanding. Could go deeper on implementation details and provide specific examples.",
       });
     }
 

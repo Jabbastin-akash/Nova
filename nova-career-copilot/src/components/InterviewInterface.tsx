@@ -20,6 +20,8 @@ interface InterviewInterfaceProps {
     onEndSession?: () => void;
     interviewPhase?: string;
     questionsAsked?: number;
+    totalPoints?: number;
+    maxPoints?: number;
 }
 
 const TOPIC_OPTIONS = [
@@ -46,6 +48,8 @@ export function InterviewInterface({
     onEndSession,
     interviewPhase = "warmup",
     questionsAsked = 0,
+    totalPoints = 0,
+    maxPoints = 0,
 }: InterviewInterfaceProps) {
     const [answer, setAnswer] = useState("");
     const [difficulty, setDifficulty] = useState("Medium");
@@ -212,26 +216,31 @@ export function InterviewInterface({
                                 const clarity = item.evaluation.clarity ?? 0;
                                 const structure = item.evaluation.structure ?? 0;
                                 const avgScore = Math.round(((techDepth + clarity + structure) / 3) * 10) / 10;
+                                const points = item.points_awarded ?? avgScore;
+                                const isCorrect = item.is_correct ?? (avgScore >= 5);
 
-                                const containerClass = avgScore >= 7
-                                    ? 'bg-green-500/5 border-green-500/20'
-                                    : avgScore >= 4
-                                        ? 'bg-yellow-500/5 border-yellow-500/20'
-                                        : 'bg-red-500/5 border-red-500/20';
+                                const containerClass = isCorrect
+                                    ? (points >= 7 ? 'bg-green-500/5 border-green-500/20' : 'bg-yellow-500/5 border-yellow-500/20')
+                                    : 'bg-red-500/5 border-red-500/20';
 
-                                const badgeClass = avgScore >= 7
+                                const pointsBadgeClass = points >= 7
                                     ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                    : avgScore >= 4
+                                    : points >= 4
                                         ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                                         : 'bg-red-500/20 text-red-400 border-red-500/30';
 
                                 return (
                                     <div className={`mx-10 p-3 rounded-xl border text-xs space-y-2.5 ${containerClass}`}>
-                                        {/* Header with overall score */}
+                                        {/* Header with points and verdict */}
                                         <div className="flex justify-between items-center">
-                                            <span className="font-bold text-white/80 uppercase tracking-wider text-[10px]">Score Card</span>
-                                            <Badge className={`text-xs px-3 py-0.5 ${badgeClass}`}>
-                                                {avgScore}/10
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-white/80 uppercase tracking-wider text-[10px]">Score Card</span>
+                                                <Badge className={`text-[10px] px-2 py-0 ${isCorrect ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                                                    {isCorrect ? 'Correct' : 'Incorrect'}
+                                                </Badge>
+                                            </div>
+                                            <Badge className={`text-xs px-3 py-0.5 ${pointsBadgeClass}`}>
+                                                {points}/10 pts
                                             </Badge>
                                         </div>
 
@@ -258,6 +267,22 @@ export function InterviewInterface({
                                         {/* Feedback text */}
                                         {item.feedback && (
                                             <p className="text-white/60 leading-relaxed pt-1 border-t border-white/5">{item.feedback}</p>
+                                        )}
+
+                                        {/* What went wrong — shown only for incorrect answers */}
+                                        {!isCorrect && item.what_went_wrong && (
+                                            <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 mt-1">
+                                                <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">What Went Wrong</p>
+                                                <p className="text-white/70 leading-relaxed">{item.what_went_wrong}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Correct answer — shown only for incorrect answers */}
+                                        {!isCorrect && item.correct_answer && (
+                                            <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 mt-1">
+                                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Correct Answer</p>
+                                                <p className="text-white/70 leading-relaxed">{item.correct_answer}</p>
+                                            </div>
                                         )}
                                     </div>
                                 );
@@ -366,6 +391,24 @@ export function InterviewInterface({
                 <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Questions Answered</p>
                     <p className="text-3xl font-bold">{questionsAsked || history.length}</p>
+                </div>
+
+                <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Total Score</p>
+                    <div className="flex items-baseline gap-1">
+                        <p className="text-3xl font-bold">{totalPoints}</p>
+                        <span className="text-sm text-white/40">/ {maxPoints}</span>
+                    </div>
+                    {maxPoints > 0 && (
+                        <div className="w-full h-2 bg-white/10 rounded-full mt-1">
+                            <div
+                                className={`h-2 rounded-full transition-all duration-500 ${(totalPoints / maxPoints) >= 0.7 ? 'bg-green-500' :
+                                        (totalPoints / maxPoints) >= 0.4 ? 'bg-yellow-500' : 'bg-red-500'
+                                    }`}
+                                style={{ width: `${Math.min((totalPoints / maxPoints) * 100, 100)}%` }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-1">

@@ -54,6 +54,8 @@ export default function Home() {
   const [programmingQuestions, setProgrammingQuestions] = useState<any[]>([]);
   const [interviewPhase, setInterviewPhase] = useState<string>("warmup");
   const [questionsAsked, setQuestionsAsked] = useState(0);
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [maxPoints, setMaxPoints] = useState(0);
 
   // App State
   const [profile, setProfile] = useState({
@@ -218,6 +220,8 @@ export default function Home() {
     setProgrammingQuestions([]);
     setInterviewPhase("warmup");
     setQuestionsAsked(0);
+    setTotalPoints(0);
+    setMaxPoints(0);
     setView("INTERVIEW");
   };
 
@@ -243,12 +247,22 @@ export default function Home() {
 
       if (res.output?.data) {
         const evalData = res.output.data.evaluation;
+        const pointsAwarded = res.output.data.points_awarded ?? 0;
+        const pointsMax = res.output.data.max_points ?? 10;
         const newHistoryItem = {
           question: appState.currentQuestion || "Tell me about your approach.",
           answer: answer,
           evaluation: evalData,
-          feedback: res.output.data.feedback_summary
+          feedback: res.output.data.feedback_summary,
+          points_awarded: pointsAwarded,
+          is_correct: res.output.data.is_correct ?? true,
+          what_went_wrong: res.output.data.what_went_wrong ?? null,
+          correct_answer: res.output.data.correct_answer ?? null,
         };
+
+        // Accumulate running total
+        setTotalPoints(prev => prev + pointsAwarded);
+        setMaxPoints(prev => prev + pointsMax);
 
         // Add programming question if present
         if (res.output.data.programming_question) {
@@ -620,6 +634,8 @@ Projects: Built a real-time chat app..."
                     onEndSession={() => setView("DASHBOARD")}
                     interviewPhase={interviewPhase}
                     questionsAsked={questionsAsked}
+                    totalPoints={totalPoints}
+                    maxPoints={maxPoints}
                   />
                 )}
 
