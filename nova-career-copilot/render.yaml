@@ -25,13 +25,7 @@ services:
       - key: GEMINI_MODEL
         value: gemini-2.5-flash
       
-      # AWS Configuration (if using Bedrock)
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: AWS_REGION
-        value: us-east-1
+ 
       
       # Application Configuration
       - key: DEMO_MODE
