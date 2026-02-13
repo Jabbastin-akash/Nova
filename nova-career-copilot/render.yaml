@@ -6,7 +6,7 @@ services:
     region: oregon
     branch: main
     rootDir: nova-career-copilot
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       # Node Configuration
