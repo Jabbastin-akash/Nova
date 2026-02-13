@@ -5,6 +5,7 @@ services:
     plan: free
     region: oregon
     branch: main
+    rootDir: nova-career-copilot
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -38,22 +39,6 @@ services:
       - key: NEXT_PUBLIC_APP_URL
         value: https://nova-career-copilot.onrender.com
     
-    # Health check and scaling
+    # Health check and deployment
     healthCheckPath: /
     autoDeploy: true
-    
-    # Build and runtime settings
-    dockerCommand: ""
-    dockerfilePath: ""
-    
-    # Custom headers for security
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
