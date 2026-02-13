@@ -1,0 +1,60 @@
+services:
+  - type: web
+    name: nova-career-copilot
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: nova-career-copilot
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      # Node Configuration
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: NODE_ENV
+        value: production
+      
+      # LLM API Keys - Set these in Render Dashboard
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      
+      # AWS Configuration (if using Bedrock)
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      
+      # Application Configuration
+      - key: DEMO_MODE
+        value: false
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://nova-career-copilot.onrender.com
+    
+    # Health check and scaling
+    healthCheckPath: /
+    autoDeploy: true
+    
+    # Build and runtime settings
+    dockerCommand: ""
+    dockerfilePath: ""
+    
+    # Custom headers for security
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
